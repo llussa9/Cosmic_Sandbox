@@ -578,6 +578,29 @@
       pointer-events: auto;
     }
 
+        .wish-btn::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(255,255,255,0.8) 0,
+                        rgba(255,210,255,0.5) 35%,
+                        rgba(120,200,255,0.2) 65%,
+                        transparent 100%);
+      transform-origin: left center;
+      transform: scaleX(var(--wish-fill, 0));
+      opacity: 0.9;
+      mix-blend-mode: screen;
+      pointer-events: none;
+    }
+    .wish-btn.sparkling::before {
+      animation: wishSparkle 0.8s linear infinite;
+    }
+    @keyframes wishSparkle {
+      0%   { filter: blur(0px); }
+      50%  { filter: blur(1.2px) brightness(1.2); }
+      100% { filter: blur(0px); }
+    }
 
     .fortune {
       position: fixed;
@@ -822,15 +845,17 @@
     }
 
     // 最初のユーザー操作で BGM を有効化
-    (function setupBgmAutoStart(){
-      function onFirstInteraction(){
-        if (bgmInitialized) return;
-        bgmInitialized = true;
-        setBgmMode('normal');  // 通常BGMスタート
-        document.removeEventListener('click', onFirstInteraction);
-      }
-      document.addEventListener('click', onFirstInteraction);
-    })();
+(function setupBgmAutoStart(){
+  function onFirstInteraction(){
+    if (bgmInitialized) return;
+    bgmInitialized = true;
+    setBgmMode('normal');  // 通常BGMスタート
+    document.removeEventListener('click', onFirstInteraction);
+    document.removeEventListener('touchstart', onFirstInteraction);
+  }
+  document.addEventListener('click', onFirstInteraction);
+  document.addEventListener('touchstart', onFirstInteraction, { passive: true });
+})();
   </script>
 
   <!-- 元のメインスクリプト（そのまま） -->
@@ -841,6 +866,8 @@
     let h = window.innerHeight;
     canvas.width = w;
     canvas.height = h;
+　　// スマホ操作時のブラウザ標準ジェスチャ（スクロール/拡大）を抑制してゲーム操作を優先
+　　canvas.style.touchAction = 'none';
 
     window.addEventListener('resize', () => {
       w = window.innerWidth;
@@ -890,8 +917,9 @@
     let mainFlowerHovered = false;
 const WIND_CURSOR =
   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'>" +
-  "<path d='M4 20 Q14 14 24 18 Q18 12 26 8' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/>" +
-  "</svg>\") 0 0, pointer";
+  "<line x1='6' y1='28' x2='22' y2='6' stroke='white' stroke-width='3'/>" +
+  "<circle cx='23' cy='7' r='4' fill='gold'/>" +
+  "</svg>\") 0 0, pointer"
 
     let petals = [];              // 花吹雪の花びら
     let petalStormActive = false; // 花吹雪アニメ ON
@@ -902,6 +930,16 @@ const WIND_CURSOR =
 
     let hourglassNormX = 0.5;
     let hourglassNormY = 0.5;
+
+        // ★ 追加：全体時間＆月の上下ゆらぎ
+    let globalTime = 0;
+    function getMoonPosition() {
+      const wobble = Math.sin(globalTime * 0.0009) * h * 0.018; // 上下にごく軽くゆらぐ
+      return {
+        x: w * moonNormX,
+        y: h * moonNormY + wobble
+      };
+    }
 
     const stars = [];
     const windPixels = [];
@@ -1279,8 +1317,7 @@ function drawHeavenTree() {
       ctx.fillRect(0, 0, w, h);
 
       if (!heavenMode) {
-        const moonX = w * moonNormX;
-        const moonY = h * moonNormY;
+        const { x: moonX, y: moonY } = getMoonPosition();
         const baseR = Math.min(w, h) * 0.09;
 
         // ★ 表示度・サイズをモードごとに切り替え
@@ -2144,8 +2181,46 @@ if (petalStormActive && petals.length > 0) {
   }
 }
 
+    // ★ 「願いをお花に込める」ボタン：押しっぱなしで発動
+    let wishFilling = false;
+    let wishStartTime = 0;
+    const WISH_HOLD_MS = 1000;
+
+    function setWishFill(v) {
+      const c = Math.max(0, Math.min(1, v));
+      document.documentElement.style.setProperty('--wish-fill', c);
+    }
+
     if (wishButton) {
-      wishButton.addEventListener('click', startPetalStorm);
+      const startWish = (e) => {
+        // ゼロヒットの天国シーンで、花の海が出ている時だけ有効
+        if (!(heavenMode && hitCount === 0 && flowerSeaActive && flowerWishAvailable && !petalStormActive)) {
+          return;
+        }
+        wishFilling = true;
+        wishStartTime = performance.now();
+        wishButton.classList.add('sparkling');
+        setWishFill(0);
+      };
+
+      const stopWish = () => {
+        if (!wishFilling) return;
+        wishFilling = false;
+        wishButton.classList.remove('sparkling');
+        setWishFill(0);
+      };
+
+      wishButton.addEventListener('mousedown', startWish);
+      wishButton.addEventListener('mouseup', stopWish);
+      wishButton.addEventListener('mouseleave', stopWish);
+
+      // スマホ対応（必要なければ削ってもOK）
+      wishButton.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        startWish(e);
+      }, { passive: false });
+      wishButton.addEventListener('touchend', stopWish);
+      wishButton.addEventListener('touchcancel', stopWish);
     }
 
     function createShards() {
@@ -2347,61 +2422,139 @@ if (petalStormActive && petals.length > 0) {
       setMagicFill(0);
     });
 
-    let draggingShards = false;
-    canvas.addEventListener('mousedown', () => {
-      if (fxMode === 'idle') return;
-      draggingShards = true;
-    });
-    window.addEventListener('mouseup', () => {
-      draggingShards = false;
-    });
-    canvas.addEventListener('mousemove', (e) => {
-      if (!draggingShards || fxMode === 'idle') return;
-      const x = e.clientX;
-      const y = e.clientY;
-      const radius = 140;
-      for (let s of shards) {
-        const dx = s.x - x;
-        const dy = s.y - y;
-        const dist = Math.hypot(dx, dy);
-        if (dist < radius) {
-          const force = (radius - dist) / radius * 0.45;
-          s.x += (dx / (dist || 1)) * force * 18;
-          s.y += (dy / (dist || 1)) * force * 18;
-        }
-      }
-    });
+// スマホ対応：押しっぱなし（touch）
+magicButton.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  if (phase !== 'ended' || fxMode !== 'idle') return;
+  magicFilling = true;
+  magicStartTime = performance.now();
+}, { passive: false });
 
-    window.addEventListener('dblclick', () => {
-      if (shootingStars.length === 0) return;
-      for (let s of shootingStars) {
-        const speed = Math.hypot(s.vx, s.vy) || 1;
-        const dirSign = s.vx >= 0 ? 1 : -1;
-        const baseDeg = 30 + Math.random() * 90;
-        const rad = baseDeg * Math.PI / 180;
-        const upward = Math.random() < 0.5;
-        const vy = Math.sin(rad) * speed * (upward ? -1 : 1);
-        const vx = Math.cos(rad) * speed * dirSign;
-        s.vx = vx;
-        s.vy = vy;
-      }
-    });
+magicButton.addEventListener('touchend', () => {
+  if (!magicFilling) return;
+  if (performance.now() - magicStartTime < MAGIC_HOLD_MS) {
+    magicFilling = false;
+    setMagicFill(0);
+  }
+});
+
+magicButton.addEventListener('touchcancel', () => {
+  if (!magicFilling) return;
+  magicFilling = false;
+  setMagicFill(0);
+});
+
+    let draggingShards = false;
+
+function repelShardsAt(clientX, clientY) {
+  if (!draggingShards || fxMode === 'idle') return;
+  const x = clientX;
+  const y = clientY;
+  const radius = 140;
+
+  for (let s of shards) {
+    const dx = s.x - x;
+    const dy = s.y - y;
+    const dist = Math.hypot(dx, dy);
+    if (dist < radius) {
+      const force = (radius - dist) / radius * 0.45;
+      s.x += (dx / (dist || 1)) * force * 18;
+      s.y += (dy / (dist || 1)) * force * 18;
+    }
+  }
+}
+
+// mouse
+canvas.addEventListener('mousedown', () => {
+  if (fxMode === 'idle') return;
+  draggingShards = true;
+});
+window.addEventListener('mouseup', () => {
+  draggingShards = false;
+});
+canvas.addEventListener('mousemove', (e) => {
+  repelShardsAt(e.clientX, e.clientY);
+});
+
+// touch
+canvas.addEventListener('touchstart', (e) => {
+  if (fxMode === 'idle') return;
+  draggingShards = true;
+  const t = e.touches[0];
+  if (t) repelShardsAt(t.clientX, t.clientY);
+  e.preventDefault();
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+  const t = e.touches[0];
+  if (t) repelShardsAt(t.clientX, t.clientY);
+  e.preventDefault();
+}, { passive: false });
+
+window.addEventListener('touchend', () => { draggingShards = false; }, { passive: true });
+window.addEventListener('touchcancel', () => { draggingShards = false; }, { passive: true });
+
+
+
+   function deflectShootingStars() {
+  if (shootingStars.length === 0) return;
+  for (let s of shootingStars) {
+    const speed = Math.hypot(s.vx, s.vy) || 1;
+    const dirSign = s.vx >= 0 ? 1 : -1;
+    const baseDeg = 30 + Math.random() * 90;
+    const rad = baseDeg * Math.PI / 180;
+    const upward = Math.random() < 0.5;
+    const vy = Math.sin(rad) * speed * (upward ? -1 : 1);
+    const vx = Math.cos(rad) * speed * dirSign;
+    s.vx = vx;
+    s.vy = vy;
+  }
+}
+
+window.addEventListener('dblclick', () => {
+  deflectShootingStars();
+});
+
+// スマホ：背景(canvas)のダブルタップで同等動作
+let lastTapTs = 0;
+window.addEventListener('touchend', (e) => {
+  if (e.target !== canvas) return; // ボタン等のダブルタップ誤爆を避ける
+  const now = performance.now();
+  if (now - lastTapTs < 320) {
+    e.preventDefault();
+    deflectShootingStars();
+    lastTapTs = 0;
+  } else {
+    lastTapTs = now;
+  }
+}, { passive: false });
 
     // ★ 花をクリックすると花の海モード開始
-    window.addEventListener('click', (e) => {
+   function tryStartFlowerSeaAt(clientX, clientY) {
   if (!heavenMode) return;
   if (hitCount !== 0) return;          // ゼロヒット時だけ
   if (!mainFlowerCenter.r) return;
   if (petalStormActive) return;        // 花吹雪中は無視
 
-  const x = e.clientX;
-  const y = e.clientY;
+  const x = clientX;
+  const y = clientY;
   const dx = x - mainFlowerCenter.x;
   const dy = y - mainFlowerCenter.y;
   if (dx * dx + dy * dy <= mainFlowerCenter.r * mainFlowerCenter.r) {
     flowerSeaActive = true;
   }
+}
+
+window.addEventListener('click', (e) => {
+  tryStartFlowerSeaAt(e.clientX, e.clientY);
 });
+
+// タッチでも確実に開始
+window.addEventListener('touchend', (e) => {
+  const t = e.changedTouches && e.changedTouches[0];
+  if (!t) return;
+  tryStartFlowerSeaAt(t.clientX, t.clientY);
+}, { passive: true });
 
 // ★ 一輪の花のホバーでカーソルを風アイコンに
 window.addEventListener('mousemove', (e) => {
@@ -2449,6 +2602,7 @@ window.addEventListener('mousemove', (e) => {
     function loop(now) {
       const dt = now - lastTime;
       lastTime = now;
+            globalTime += dt;
 
       if (magicFilling) {
         const elapsed = now - magicStartTime;
@@ -2458,6 +2612,18 @@ window.addEventListener('mousemove', (e) => {
           magicFilling = false;
           triggerPixelShatter();
           setMagicFill(0);
+        }
+      }
+
+        if (wishFilling) {
+        const elapsedW = now - wishStartTime;
+        const ratioW = elapsedW / WISH_HOLD_MS;
+        setWishFill(ratioW);
+        if (ratioW >= 1) {
+          wishFilling = false;
+          setWishFill(1);
+          wishButton.classList.remove('sparkling');
+          startPetalStorm();
         }
       }
 
@@ -2779,8 +2945,7 @@ window.addEventListener('mousemove', (e) => {
       }
 
       if (!heavenMode) {
-        const moonX = w * moonNormX;
-        const moonY = h * moonNormY;
+        const { x: moonX, y: moonY } = getMoonPosition();
         const moonR = Math.min(w, h) * 0.09;
         ctx.save();
 
@@ -3152,6 +3317,33 @@ window.addEventListener('mousemove', (e) => {
       }
       moonPressing = false;
     });
+
+    // スマホ：月の長押しで同じチャージ挙動
+window.addEventListener('touchstart', function(e){
+  if (fxMode !== 'idle' || heavenMode || ufoPilotMode || phase !== 'flow') return;
+  const t = e.touches && e.touches[0];
+  if (!t) return;
+  if (!isOnMoon(t.clientX, t.clientY)) return;
+  e.preventDefault();
+  moonPressing = true;
+  moonPressElapsed = 0;
+  moonEventInProgress = true;
+}, { passive: false });
+
+window.addEventListener('touchend', function(){
+  if (moonPressing && !moonCountdownActive) {
+    resetMoonCharge();
+  }
+  moonPressing = false;
+}, { passive: true });
+
+window.addEventListener('touchcancel', function(){
+  if (moonPressing && !moonCountdownActive) {
+    resetMoonCharge();
+  }
+  moonPressing = false;
+}, { passive: true });
+
 
   })();
   </script>
