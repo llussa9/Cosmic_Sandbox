@@ -814,6 +814,208 @@
     </div>
   </div>
 
+<!-- タッチ端末用仮想コントローラー（追加CSS） -->
+  <style>
+    .touch-controller {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 30vh;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      z-index: 5;
+    }
+    
+    .touch-controller.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    .dpad-container {
+      position: relative;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: rgba(10, 5, 20, 0.75);
+      backdrop-filter: blur(8px);
+      box-shadow: 
+        0 8px 24px rgba(0, 0, 0, 0.6),
+        inset 0 0 24px rgba(255, 255, 255, 0.15);
+      touch-action: manipulation;
+    }
+    
+    .dpad-center {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      z-index: 1;
+    }
+    
+    .dpad-btn {
+      position: absolute;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: rgba(40, 30, 60, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 1.4rem;
+      transition: all 0.12s ease;
+      z-index: 2;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    
+    .dpad-btn.active {
+      background: rgba(80, 120, 255, 0.9);
+      transform: scale(0.88);
+      border-color: rgba(255, 255, 255, 0.8);
+      box-shadow: 0 0 20px rgba(100, 150, 255, 0.8);
+    }
+    
+    .dpad-up {
+      left: 50%;
+      top: 10px;
+      transform: translateX(-50%);
+    }
+    .dpad-left {
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    .dpad-down {
+      left: 50%;
+      bottom: 10px;
+      transform: translateX(-50%);
+    }
+    .dpad-right {
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    
+    .action-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      touch-action: manipulation;
+    }
+    
+    .action-btn {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: rgba(40, 30, 60, 0.85);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: all 0.12s ease;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    
+    .action-btn.active {
+      transform: scale(0.88);
+      border-color: rgba(255, 255, 255, 0.8);
+    }
+    
+    .barrier-btn.active {
+      background: rgba(80, 200, 255, 0.9);
+      box-shadow: 0 0 20px rgba(80, 200, 255, 0.8);
+    }
+    
+    .beam-btn.active {
+      background: rgba(255, 100, 100, 0.9);
+      box-shadow: 0 0 20px rgba(255, 100, 100, 0.8);
+    }
+    
+    .action-btn-icon {
+      font-size: 1.4rem;
+      margin-bottom: 4px;
+    }
+    
+    @media (max-width: 600px) {
+      .touch-controller {
+        height: 35vh;
+        padding: 15px;
+      }
+      
+      .dpad-container {
+        width: 120px;
+        height: 120px;
+      }
+      
+      .dpad-btn {
+        width: 46px;
+        height: 46px;
+        font-size: 1.2rem;
+      }
+      
+      .action-btn {
+        width: 60px;
+        height: 60px;
+        font-size: 0.65rem;
+      }
+    }
+    
+    @media (max-width: 400px) {
+      .touch-controller {
+        flex-direction: column;
+        justify-content: flex-end;
+        gap: 15px;
+      }
+      
+      .action-buttons {
+        flex-direction: row;
+        gap: 20px;
+      }
+    }
+  </style>
+
+  <!-- 仮想コントローラーHTML -->
+  <div id="touchController" class="touch-controller">
+    <div class="dpad-container">
+      <div class="dpad-center"></div>
+      <div class="dpad-btn dpad-up" data-key="KeyW">↑</div>
+      <div class="dpad-btn dpad-left" data-key="KeyA">←</div>
+      <div class="dpad-btn dpad-down" data-key="KeyS">↓</div>
+      <div class="dpad-btn dpad-right" data-key="KeyD">→</div>
+    </div>
+    
+    <div class="action-buttons">
+      <div class="action-btn barrier-btn" data-key="Space">
+        <div class="action-btn-icon">🛡️</div>
+        <div>バリア</div>
+      </div>
+      <div class="action-btn beam-btn" data-key="KeyB">
+        <div class="action-btn-icon">⚡</div>
+        <div>ビーム</div>
+      </div>
+    </div>
+  </div>
+
   <div id="fortune" class="fortune"></div>
   <button id="magicButton" class="magic-btn">魔法をかけて！</button>
   <button id="wishButton" class="wish-btn">願いをお花に込める</button>
@@ -2844,6 +3046,15 @@ window.addEventListener('mousemove', (e) => {
       if (bgmInitialized) {
         setBgmMode('battle');
       }
+
+   
+      // ★ 追加：タッチコントローラー表示（モバイルのみ）
+      if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        const touchController = document.getElementById('touchController');
+        if (touchController) {
+          touchController.classList.add('show');
+        }
+      }
     }
 
     function endUfoPilotMode(){
@@ -2860,6 +3071,12 @@ window.addEventListener('mousemove', (e) => {
       updateHudShield();
       if (bgmInitialized) {
         setBgmMode('normal');
+      }
+      
+      // ★ 追加：タッチコントローラー非表示
+      const touchController = document.getElementById('touchController');
+      if (touchController) {
+        touchController.classList.remove('show');
       }
     }
 
@@ -3345,11 +3562,171 @@ window.addEventListener('touchcancel', function(){
 }, { passive: true });
 
 
+ // ===== ここにタッチコントローラーイベント処理を追加 =====
+    // タッチコントローラーイベント処理
+    (function setupTouchController() {
+      const touchController = document.getElementById('touchController');
+      if (!touchController) return;
+      
+      const dpadButtons = touchController.querySelectorAll('.dpad-btn');
+      const actionButtons = touchController.querySelectorAll('.action-btn');
+      
+      let activeTouchKeys = new Set();
+      
+      // タッチ開始
+      function handleTouchStart(e) {
+        e.preventDefault();
+        const button = e.target.closest('.dpad-btn, .action-btn');
+        if (!button || !ufoPilotMode) return;
+        
+        const key = button.getAttribute('data-key');
+        if (key) {
+          keys[key] = true;
+          activeTouchKeys.add(key);
+          button.classList.add('active');
+          
+          // キーボードイベントをシミュレート（既存の処理を動かすため）
+          const keyboardEvent = new KeyboardEvent('keydown', { code: key });
+          window.dispatchEvent(keyboardEvent);
+        }
+      }
+      
+      // タッチ終了
+      function handleTouchEnd(e) {
+        e.preventDefault();
+        const button = e.target.closest('.dpad-btn, .action-btn');
+        if (!button) return;
+        
+        const key = button.getAttribute('data-key');
+        if (key && activeTouchKeys.has(key)) {
+          keys[key] = false;
+          activeTouchKeys.delete(key);
+          button.classList.remove('active');
+          
+          // キーボードイベントをシミュレート
+          const keyboardEvent = new KeyboardEvent('keyup', { code: key });
+          window.dispatchEvent(keyboardEvent);
+        }
+      }
+      
+      // タッチがコントローラー外に出た場合
+      function handleTouchCancel(e) {
+        if (!ufoPilotMode) return;
+        
+        // 全てのアクティブなキーをクリア
+        activeTouchKeys.forEach(key => {
+          keys[key] = false;
+          const keyboardEvent = new KeyboardEvent('keyup', { code: key });
+          window.dispatchEvent(keyboardEvent);
+        });
+        
+        activeTouchKeys.clear();
+        
+        // 全てのボタンのactive状態を解除
+        dpadButtons.forEach(btn => btn.classList.remove('active'));
+        actionButtons.forEach(btn => btn.classList.remove('active'));
+      }
+      
+      // イベントリスナー登録
+      dpadButtons.forEach(btn => {
+        btn.addEventListener('touchstart', handleTouchStart, { passive: false });
+        btn.addEventListener('touchend', handleTouchEnd, { passive: false });
+        btn.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+      });
+      
+      actionButtons.forEach(btn => {
+        btn.addEventListener('touchstart', handleTouchStart, { passive: false });
+        btn.addEventListener('touchend', handleTouchEnd, { passive: false });
+        btn.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+      });
+      
+      // 画面タッチが外れた場合の処理
+      document.addEventListener('touchcancel', handleTouchCancel, { passive: true });
+      document.addEventListener('touchend', function(e) {
+        if (e.target.closest('.touch-controller')) return;
+        // コントローラー外でタッチ終了した場合は何もしない
+      }, { passive: true });
+      
+      // マウス操作もサポート（PCでタッチパネルがある場合）
+      dpadButtons.forEach(btn => {
+        btn.addEventListener('mousedown', function(e) {
+          if (!ufoPilotMode) return;
+          e.preventDefault();
+          const key = btn.getAttribute('data-key');
+          if (key) {
+            keys[key] = true;
+            btn.classList.add('active');
+            const keyboardEvent = new KeyboardEvent('keydown', { code: key });
+            window.dispatchEvent(keyboardEvent);
+          }
+        });
+        
+        btn.addEventListener('mouseup', function(e) {
+          e.preventDefault();
+          const key = btn.getAttribute('data-key');
+          if (key) {
+            keys[key] = false;
+            btn.classList.remove('active');
+            const keyboardEvent = new KeyboardEvent('keyup', { code: key });
+            window.dispatchEvent(keyboardEvent);
+          }
+        });
+        
+        btn.addEventListener('mouseleave', function(e) {
+          if (btn.classList.contains('active')) {
+            const key = btn.getAttribute('data-key');
+            if (key) {
+              keys[key] = false;
+              btn.classList.remove('active');
+              const keyboardEvent = new KeyboardEvent('keyup', { code: key });
+              window.dispatchEvent(keyboardEvent);
+            }
+          }
+        });
+      });
+      
+      actionButtons.forEach(btn => {
+        btn.addEventListener('mousedown', function(e) {
+          if (!ufoPilotMode) return;
+          e.preventDefault();
+          const key = btn.getAttribute('data-key');
+          if (key) {
+            keys[key] = true;
+            btn.classList.add('active');
+            const keyboardEvent = new KeyboardEvent('keydown', { code: key });
+            window.dispatchEvent(keyboardEvent);
+          }
+        });
+        
+        btn.addEventListener('mouseup', function(e) {
+          e.preventDefault();
+          const key = btn.getAttribute('data-key');
+          if (key) {
+            keys[key] = false;
+            btn.classList.remove('active');
+            const keyboardEvent = new KeyboardEvent('keyup', { code: key });
+            window.dispatchEvent(keyboardEvent);
+          }
+        });
+        
+        btn.addEventListener('mouseleave', function(e) {
+          if (btn.classList.contains('active')) {
+            const key = btn.getAttribute('data-key');
+            if (key) {
+              keys[key] = false;
+              btn.classList.remove('active');
+              const keyboardEvent = new KeyboardEvent('keyup', { code: key });
+              window.dispatchEvent(keyboardEvent);
+            }
+          }
+        });
+      });
+    })();
+    // ===== タッチコントローラーイベント処理 ここまで ====
+
   })();
   </script>
   <!-- 追加スクリプトここまで -->
 
 </body>
 </html>
-
-
